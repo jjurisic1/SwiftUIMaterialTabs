@@ -18,7 +18,18 @@ class ScrollModel<Tab> where Tab: Hashable {
     private(set) var appeared = false
     private(set) var bottomMargin: CGFloat = 0
     /// The tab's list is bottom-aligned by its own `ScrollView`: no bottom margin, and tab sync never writes the scroll position.
-    var anchoredToBottom = false
+    private(set) var anchoredToBottom = false
+
+    /// Switches the bottom-anchored mode while the tab is on screen: the bottom margin is recomputed, and
+    /// leaving the mode brings the scroll position back in line with the header.
+    func setAnchoredToBottom(_ value: Bool) {
+        guard value != anchoredToBottom else { return }
+        anchoredToBottom = value
+        configureBottomMargin()
+        if !value {
+            syncContentOffsetWithHeader(appearance: false)
+        }
+    }
 
     func contentOffsetChanged(_ offset: CGFloat) {
         let oldContentOffset = contentOffset
