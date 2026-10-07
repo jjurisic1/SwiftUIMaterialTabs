@@ -54,7 +54,8 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
     ///     Update both values together (see example below). Defaults to `nil`.
     ///   - anchoredToBottom: When `true`, the scroll view bottom-aligns its content and keeps it at the
     ///     bottom as it grows (for chat-like lists). The tab adds no bottom margin and tab sync never writes
-    ///     its scroll position; the header still follows the tab's scroll offset, clamped to `>= 0`.
+    ///     its scroll position; the header follows the tab's scroll offset, clamped to `>= 0`, only while the
+    ///     finger drives the list or it is decelerating (programmatic scrolls, growing rows and prepends leave it where it is).
     ///     May change while the tab is on screen (for example, a chat shows its list only once rows exist);
     ///     the tab then behaves as a regular tab while it is `false`. Defaults to `false`.
     ///   - content: The scroll content view builder, typically a `VStack` or `LazyVStack`.

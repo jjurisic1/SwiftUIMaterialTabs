@@ -125,6 +125,8 @@ class ScrollModel<Tab> where Tab: Hashable {
     /// Set during library-internal programmatic scrolls (syncContentOffsetWithHeader) and cleared
     /// after a short delay. Prevents reporting programmatic scroll offsets to the header model.
     private var isSyncingWithHeader = false
+    /// Set from the scroll view's phase: `true` while the finger drags the list or it decelerates after a drag.
+    /// A bottom-anchored list reports its offset to the header only then.
     private var isFingerDriven = false
 
     // MARK: Configuring the bottom margin
@@ -179,13 +181,13 @@ class ScrollModel<Tab> where Tab: Hashable {
         isSyncingWithHeader = true
         let unitPointY = (headerModel.headerContext.maxOffset - contentOffset) / (headerModel.safeHeight - 1)
         let syncAnchor = UnitPoint(x: UnitPoint.top.x, y: unitPointY)
-        // The .scrollPosition() modifier's anchor must match the scrollTo anchor for positioning to work.
-        anchorBinding?.wrappedValue = syncAnchor
         // The container animates tab selection; an animated write would sweep the offset through values that the
         // header then follows.
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
+            // The .scrollPosition() modifier's anchor must match the scrollTo anchor for positioning to work.
+            anchorBinding?.wrappedValue = syncAnchor
             scrollPositionBinding.wrappedValue.scrollTo(id: reservedItemID, anchor: syncAnchor)
         }
         Task {
