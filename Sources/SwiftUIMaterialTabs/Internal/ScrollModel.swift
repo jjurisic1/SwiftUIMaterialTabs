@@ -17,10 +17,12 @@ class ScrollModel<Tab> where Tab: Hashable {
     let reservedItemID = UUID()
     private(set) var appeared = false
     private(set) var bottomMargin: CGFloat = 0
+    /// The tab's list is bottom-aligned by its own `ScrollView`: no bottom margin, and tab sync never writes the scroll position.
+    var anchoredToBottom = false
 
     func contentOffsetChanged(_ offset: CGFloat) {
         let oldContentOffset = contentOffset
-        contentOffset = -offset
+        contentOffset = anchoredToBottom ? max(0, -offset) : -offset
         let deltaOffset = contentOffset - oldContentOffset
         // Only filter out library-internal programmatic scrolls (tab sync). Consumer-initiated
         // scrollTo(id:) should still notify the header model so it can collapse/expand.
@@ -109,7 +111,7 @@ class ScrollModel<Tab> where Tab: Hashable {
 
     private func configureBottomMargin() {
         guard let headerModel, let contentSize else { return }
-        bottomMargin = max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight)
+        bottomMargin = anchoredToBottom ? 0 : max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight)
     }
 
     // MARK: Adjusting scroll and header state
@@ -141,6 +143,9 @@ class ScrollModel<Tab> where Tab: Hashable {
         }
         cachedOffset = headerModel.headerContext.offset
         cachedHeight = headerModel.height
+        if anchoredToBottom {
+            return
+        }
         switch headerModel.config.crossTabSyncMode {
         case .resetScrollPosition where
             appearance &&

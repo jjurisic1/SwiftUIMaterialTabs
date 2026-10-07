@@ -33,6 +33,7 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
         @ViewBuilder content: @escaping (_ context: MaterialTabsScrollContext<Tab>) -> Content
     ) {
         self.tab = tab
+        self.anchoredToBottom = false
         _externalAnchor = .constant(nil)
         self.hasExternalScrollPosition = false
         _externalScrollPosition = .constant(ScrollPosition())
@@ -51,6 +52,10 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
     ///     When scrolling to a specific item with `scrollTo(id:anchor:)`, the modifier's
     ///     anchor must match the `scrollTo` anchor for visible items to reposition correctly.
     ///     Update both values together (see example below). Defaults to `nil`.
+    ///   - anchoredToBottom: When `true`, the scroll view bottom-aligns its content and keeps it at the
+    ///     bottom as it grows (for chat-like lists). The tab adds no bottom margin and tab sync never writes
+    ///     its scroll position; the header still follows the tab's scroll offset, clamped to `>= 0`.
+    ///     Defaults to `false`.
     ///   - content: The scroll content view builder, typically a `VStack` or `LazyVStack`.
     ///
     /// The library manages cross-tab header sync automatically. Joint manipulation allows
@@ -72,13 +77,17 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
         tab: Tab,
         scrollPosition: Binding<ScrollPosition>,
         anchor: Binding<UnitPoint?> = .constant(nil),
+        anchoredToBottom: Bool = false,
         @ViewBuilder content: @escaping (_ context: MaterialTabsScrollContext<Tab>) -> Content
     ) {
         self.tab = tab
+        self.anchoredToBottom = anchoredToBottom
         _externalAnchor = anchor
         self.hasExternalScrollPosition = true
         _externalScrollPosition = scrollPosition
-        _scrollModel = State(wrappedValue: ScrollModel(tab: tab))
+        let model = ScrollModel(tab: tab)
+        model.anchoredToBottom = anchoredToBottom
+        _scrollModel = State(wrappedValue: model)
         self.content = content
     }
 
@@ -87,6 +96,7 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
     // MARK: - Variables
 
     private let tab: Tab
+    private let anchoredToBottom: Bool
     @Binding private var externalAnchor: UnitPoint?
     @State private var internalAnchor: UnitPoint?
     private let hasExternalScrollPosition: Bool
@@ -160,6 +170,7 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
                 Color.clear.frame(height: scrollModel.bottomMargin)
             }
         }
+        .modifier(BottomAnchorModifier(isOn: anchoredToBottom))
         .coordinateSpace(name: coordinateSpaceName)
         .scrollPosition(activeScrollPosition, anchor: activeAnchor.wrappedValue)
         .onPreferenceChange(ScrollViewContentSizeKey.self) { size in
@@ -186,6 +197,22 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
         }
         .onDisappear() {
             scrollModel.disappeared()
+        }
+    }
+}
+
+/// Bottom-aligns the scroll view's own content and keeps it at the bottom as it grows.
+private struct BottomAnchorModifier: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn {
+            content
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .defaultScrollAnchor(.bottom, for: .sizeChanges)
+                .defaultScrollAnchor(.bottom, for: .alignment)
+        } else {
+            content
         }
     }
 }
