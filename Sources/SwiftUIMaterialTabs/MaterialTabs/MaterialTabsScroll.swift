@@ -173,6 +173,9 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
         .onChange(of: anchoredToBottom, initial: true) {
             scrollModel.setAnchoredToBottom(anchoredToBottom)
         }
+        .onScrollPhaseChange { _, phase in
+            scrollModel.setFingerDriven(phase == .interacting || phase == .decelerating)
+        }
         .coordinateSpace(name: coordinateSpaceName)
         .scrollPosition(activeScrollPosition, anchor: activeAnchor.wrappedValue)
         .onPreferenceChange(ScrollViewContentSizeKey.self) { size in

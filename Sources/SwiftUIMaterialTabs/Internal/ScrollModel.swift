@@ -31,10 +31,18 @@ class ScrollModel<Tab> where Tab: Hashable {
         }
     }
 
+    /// Whether the finger, or the deceleration that follows it, is moving the scroll view.
+    func setFingerDriven(_ value: Bool) {
+        isFingerDriven = value
+    }
+
     func contentOffsetChanged(_ offset: CGFloat) {
         let oldContentOffset = contentOffset
         contentOffset = anchoredToBottom ? max(0, -offset) : -offset
         let deltaOffset = contentOffset - oldContentOffset
+        // A bottom-anchored list also moves under programmatic scrolls, growing rows and prepends; only the
+        // finger may move the header.
+        if anchoredToBottom && !isFingerDriven { return }
         // Only filter out library-internal programmatic scrolls (tab sync). Consumer-initiated
         // scrollTo(id:) should still notify the header model so it can collapse/expand.
         if !isSyncingWithHeader {
@@ -117,6 +125,7 @@ class ScrollModel<Tab> where Tab: Hashable {
     /// Set during library-internal programmatic scrolls (syncContentOffsetWithHeader) and cleared
     /// after a short delay. Prevents reporting programmatic scroll offsets to the header model.
     private var isSyncingWithHeader = false
+    private var isFingerDriven = false
 
     // MARK: Configuring the bottom margin
 
@@ -172,7 +181,13 @@ class ScrollModel<Tab> where Tab: Hashable {
         let syncAnchor = UnitPoint(x: UnitPoint.top.x, y: unitPointY)
         // The .scrollPosition() modifier's anchor must match the scrollTo anchor for positioning to work.
         anchorBinding?.wrappedValue = syncAnchor
-        scrollPositionBinding.wrappedValue.scrollTo(id: reservedItemID, anchor: syncAnchor)
+        // The container animates tab selection; an animated write would sweep the offset through values that the
+        // header then follows.
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollPositionBinding.wrappedValue.scrollTo(id: reservedItemID, anchor: syncAnchor)
+        }
         Task {
             try? await Task.sleep(for: .seconds(0.05))
             isSyncingWithHeader = false
