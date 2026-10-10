@@ -36,11 +36,12 @@ class ScrollModel<Tab> where Tab: Hashable {
         isFingerDriven = value
     }
 
-    /// `anchoredToBottom` is the view's current mode. The offset that follows a switch of mode arrives in the same
+    /// `isAnchoredToBottom` is the view's current mode. The offset that follows a switch of mode arrives in the same
     /// layout, before `onChange` passes the switch on, and must be read in the new mode: read in the old one, the
-    /// list's jump to its new alignment counts as a scroll and moves the header.
-    func contentOffsetChanged(_ offset: CGFloat, anchoredToBottom: Bool) {
-        setAnchoredToBottom(anchoredToBottom)
+    /// list's jump to its new alignment counts as a scroll and moves the header. `onChange` still covers a switch
+    /// that moves nothing.
+    func contentOffsetChanged(_ offset: CGFloat, isAnchoredToBottom: Bool) {
+        setAnchoredToBottom(isAnchoredToBottom)
         let oldContentOffset = contentOffset
         contentOffset = anchoredToBottom ? max(0, -offset) : -offset
         let deltaOffset = contentOffset - oldContentOffset
@@ -93,7 +94,7 @@ class ScrollModel<Tab> where Tab: Hashable {
     }
 
     /// The scroll view's bottom content inset: the container's safe area plus any bar the tab adds itself
-    /// (`safeAreaInset(edge: .bottom)`), and the keyboard while that bar rides on it.
+    /// (`safeAreaInset(edge: .bottom)`).
     func bottomInsetChanged(_ inset: CGFloat) {
         guard inset != bottomInset else { return }
         bottomInset = inset
@@ -145,17 +146,16 @@ class ScrollModel<Tab> where Tab: Hashable {
     // MARK: Configuring the bottom margin
 
     /// Just enough room below short content for the header to collapse fully, and no more. `headerModel.height`
-    /// already leaves out the container's safe area; a bar the tab adds on top of it shortens the visible
-    /// part of this scroll view only, so its height comes off the margin too. Without that, short content
-    /// scrolls past the collapsed header by the bar's height.
+    /// already leaves out the container's safe area; a bar the tab adds on top of it shortens only this scroll
+    /// view's visible part, so its height comes off the margin too.
     private func configureBottomMargin() {
         guard let headerModel, let contentSize else { return }
         let tabBottomBar = max(0, bottomInset - headerModel.headerContext.safeArea.bottom)
         let margin = anchoredToBottom
             ? 0
             : max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight - tabBottomBar)
-        // An observed write invalidates the scroll view even when the value is the same; the inset changes on
-        // every keyboard frame.
+        // An observed write invalidates the scroll view even when the value is the same, and the margin is
+        // recomputed on every inset and size change.
         if margin != bottomMargin {
             bottomMargin = margin
         }

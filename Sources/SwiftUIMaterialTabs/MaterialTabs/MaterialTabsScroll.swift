@@ -133,7 +133,7 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
                         }
                     }
                     .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                        scrollModel.contentOffsetChanged(offset, anchoredToBottom: anchoredToBottom)
+                        scrollModel.contentOffsetChanged(offset, isAnchoredToBottom: anchoredToBottom)
                     }
                 ZStack(alignment: .top) {
                     // Reserved item: a hidden 1pt view used as the scroll target for
@@ -204,6 +204,10 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
             scrollModel.headerStateChanged()
         }
         .onChange(of: headerModel.headerContext.minTotalHeight) {
+            scrollModel.headerStateChanged()
+        }
+        // The margin subtracts the container's bottom safe area, which arrives apart from the scroll view's inset.
+        .onChange(of: headerModel.headerContext.safeArea.bottom) {
             scrollModel.headerStateChanged()
         }
         .onDisappear() {
