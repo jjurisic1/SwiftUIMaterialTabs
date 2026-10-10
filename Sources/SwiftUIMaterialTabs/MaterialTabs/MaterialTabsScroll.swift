@@ -133,7 +133,7 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
                         }
                     }
                     .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                        scrollModel.contentOffsetChanged(offset)
+                        scrollModel.contentOffsetChanged(offset, anchoredToBottom: anchoredToBottom)
                     }
                 ZStack(alignment: .top) {
                     // Reserved item: a hidden 1pt view used as the scroll target for
@@ -167,7 +167,9 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
                         })
                     }
                 }
-                Color.clear.frame(height: scrollModel.bottomMargin)
+                // The parameter, not the model's copy: the model learns of the mode in `onChange`, after this layout,
+                // and a margin left under the first rows makes them overflow for one pass.
+                Color.clear.frame(height: anchoredToBottom ? 0 : scrollModel.bottomMargin)
             }
         }
         .defaultScrollAnchor(anchoredToBottom ? .bottom : nil)

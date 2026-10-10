@@ -36,7 +36,11 @@ class ScrollModel<Tab> where Tab: Hashable {
         isFingerDriven = value
     }
 
-    func contentOffsetChanged(_ offset: CGFloat) {
+    /// `anchoredToBottom` is the view's current mode. The offset that follows a switch of mode arrives in the same
+    /// layout, before `onChange` passes the switch on, and must be read in the new mode: read in the old one, the
+    /// list's jump to its new alignment counts as a scroll and moves the header.
+    func contentOffsetChanged(_ offset: CGFloat, anchoredToBottom: Bool) {
+        setAnchoredToBottom(anchoredToBottom)
         let oldContentOffset = contentOffset
         contentOffset = anchoredToBottom ? max(0, -offset) : -offset
         let deltaOffset = contentOffset - oldContentOffset
