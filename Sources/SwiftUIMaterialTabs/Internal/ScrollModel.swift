@@ -147,9 +147,14 @@ class ScrollModel<Tab> where Tab: Hashable {
     private func configureBottomMargin() {
         guard let headerModel, let contentSize else { return }
         let tabBottomBar = max(0, bottomInset - headerModel.headerContext.safeArea.bottom)
-        bottomMargin = anchoredToBottom
+        let margin = anchoredToBottom
             ? 0
             : max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight - tabBottomBar)
+        // An observed write invalidates the scroll view even when the value is the same; the inset changes on
+        // every keyboard frame.
+        if margin != bottomMargin {
+            bottomMargin = margin
+        }
     }
 
     // MARK: Adjusting scroll and header state
