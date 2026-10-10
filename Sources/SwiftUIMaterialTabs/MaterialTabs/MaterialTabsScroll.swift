@@ -177,6 +177,9 @@ public struct MaterialTabsScroll<Content, Tab>: View where Content: View, Tab: H
         .onScrollPhaseChange { _, phase in
             scrollModel.setFingerDriven(phase == .interacting || phase == .decelerating)
         }
+        .onScrollGeometryChange(for: CGFloat.self) { $0.contentInsets.bottom } action: { _, inset in
+            scrollModel.bottomInsetChanged(inset)
+        }
         .coordinateSpace(name: coordinateSpaceName)
         .scrollPosition(activeScrollPosition, anchor: activeAnchor.wrappedValue)
         .onPreferenceChange(ScrollViewContentSizeKey.self) { size in

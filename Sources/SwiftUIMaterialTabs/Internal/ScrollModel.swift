@@ -88,6 +88,14 @@ class ScrollModel<Tab> where Tab: Hashable {
         configureBottomMargin()
     }
 
+    /// The scroll view's bottom content inset: the container's safe area plus any bar the tab adds itself
+    /// (`safeAreaInset(edge: .bottom)`), and the keyboard while that bar rides on it.
+    func bottomInsetChanged(_ inset: CGFloat) {
+        guard inset != bottomInset else { return }
+        bottomInset = inset
+        configureBottomMargin()
+    }
+
     init(tab: Tab) {
         self.tab = tab
     }
@@ -108,6 +116,7 @@ class ScrollModel<Tab> where Tab: Hashable {
     private var cachedHeight: CGFloat?
     private weak var headerModel: HeaderModel<Tab>?
     private var contentSize: CGSize?
+    private var bottomInset: CGFloat = 0
 
     private var selectedTab: Tab? {
         didSet {
@@ -131,9 +140,16 @@ class ScrollModel<Tab> where Tab: Hashable {
 
     // MARK: Configuring the bottom margin
 
+    /// Just enough room below short content for the header to collapse fully, and no more. `headerModel.height`
+    /// already leaves out the container's safe area; a bar the tab adds on top of it shortens the visible
+    /// part of this scroll view only, so its height comes off the margin too. Without that, short content
+    /// scrolls past the collapsed header by the bar's height.
     private func configureBottomMargin() {
         guard let headerModel, let contentSize else { return }
-        bottomMargin = anchoredToBottom ? 0 : max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight)
+        let tabBottomBar = max(0, bottomInset - headerModel.headerContext.safeArea.bottom)
+        bottomMargin = anchoredToBottom
+            ? 0
+            : max(0, headerModel.height - contentSize.height - headerModel.headerContext.minTotalHeight - tabBottomBar)
     }
 
     // MARK: Adjusting scroll and header state
